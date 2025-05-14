@@ -2,7 +2,7 @@ import { Injectable, Inject } from '@nestjs/common';
 import { Task } from '../entities/tasks.entity';
 import { TaskServicePort } from '../ports/in/tasks.service.port';
 import { TaskRepositoryPort } from '../ports/out/tasks.repository.port';
-import { TASK_REPOSITORY_PORT } from 'src/tasks/infrastructure/tasks.modules';
+import { TASK_REPOSITORY_PORT } from '../constans/tokens';
 
 @Injectable()
 export class TaskDomainService implements TaskServicePort {
