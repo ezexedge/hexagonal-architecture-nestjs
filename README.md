@@ -1,73 +1,128 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="200" alt="Nest Logo" /></a>
-</p>
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+# 🧱 Hexagonal Architecture with NestJS
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://coveralls.io/github/nestjs/nest?branch=master" target="_blank"><img src="https://coveralls.io/repos/github/nestjs/nest/badge.svg?branch=master#9" alt="Coverage" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+Este proyecto es una implementación de una API básica de tareas utilizando **NestJS** siguiendo los principios de la **arquitectura hexagonal (Ports & Adapters)**. La idea principal es separar las responsabilidades de forma que el dominio de negocio no dependa de frameworks ni de detalles de infraestructura.
 
-## Description
+---
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+## 🚀 Tecnologías utilizadas
 
-## Installation
+- **NestJS** – Framework progresivo para Node.js
+- **MongoDB + Mongoose** – Base de datos NoSQL
+- **Arquitectura hexagonal (ports & adapters)** – Separación de capas y dependencias
+
+---
+
+## 📁 Estructura del proyecto
 
 ```bash
-$ npm install
+src/
+├── adapters/
+│   ├── in/                      # Entradas: Controladores HTTP
+│   │   └── tasks.controller.ts
+│   └── out/                     # Salidas: Persistencia (MongoDB)
+│       ├── mongodb/
+│       │   ├── repositories/
+│       │   │   └── tasks.mongodb.repository.ts
+│       │   └── schemas/
+│       │       └── tasks.schema.ts
+├── application/                # Casos de uso de la aplicación
+│   └── services/
+│       └── tasks.application.service.ts
+├── domain/                     # Reglas de negocio (entidades y puertos)
+│   ├── entities/
+│   │   └── tasks.entity.ts
+│   ├── ports/
+│   │   ├── in/
+│   │   │   └── tasks.service.port.ts     # Lo que la aplicación necesita
+│   │   └── out/
+│   │       └── tasks.repository.port.ts  # Lo que el dominio espera
+│   └── services/
+│       └── tasks.domain.service.ts
+├── infrastructure/
+│   └── tasks.modules.ts        # Configuración de DI (inyección de dependencias)
+├── main.ts                     # Punto de entrada
 ```
 
-## Running the app
+---
+
+## 🧠 ¿Qué es la arquitectura hexagonal?
+
+La arquitectura hexagonal busca que la lógica de negocio (dominio) esté completamente desacoplada del mundo exterior (bases de datos, controladores, etc.). Esto se logra mediante **puertos** (interfaces) y **adaptadores** (implementaciones).
+
+- **Dominio:** No sabe nada del framework ni de cómo se guardan los datos.
+- **Aplicación:** Orquesta el flujo entre entrada y lógica de negocio.
+- **Adaptadores:** Interfases de entrada (controladores) y salida (repositorios, base de datos).
+- **Infraestructura:** Se encarga de vincular todo mediante **inyección de dependencias** (NestJS).
+
+---
+
+## 🧩 Inyección de dependencias (por token)
+
+NestJS permite inyectar clases mediante **tokens** para desacoplar aún más:
+
+```ts
+export const TASK_REPOSITORY_PORT = Symbol('TASK_REPOSITORY_PORT');
+```
+
+Luego en el módulo:
+
+```ts
+{
+  provide: TASK_REPOSITORY_PORT,
+  useClass: TaskRepository,
+}
+```
+
+Esto permite que el dominio dependa de interfaces (`TaskRepositoryPort`) y no de clases concretas (`TaskRepository`). Así, se puede cambiar la implementación sin afectar el dominio.
+
+---
+
+## 📌 Cómo se ejecuta el flujo
+
+1. Un cliente realiza una petición a una ruta del controlador (`TaskController`).
+2. El controlador llama al servicio de aplicación (`TaskApplicationService`).
+3. Este servicio invoca la lógica de negocio desde el dominio (`TaskDomainService`).
+4. El dominio utiliza un puerto (`TaskRepositoryPort`) para guardar, buscar o eliminar tareas.
+5. Finalmente, la infraestructura (adaptador de salida: `TaskRepository`) implementa ese puerto y guarda los datos en MongoDB.
+
+---
+
+## ▶️ Comenzar
+
+1. Clona el repositorio:
 
 ```bash
-# development
-$ npm run start
-
-# watch mode
-$ npm run start:dev
-
-# production mode
-$ npm run start:prod
+git clone https://github.com/ezexedge/hexagonal-architecture-nestjs.git
+cd hexagonal-architecture-nestjs
 ```
 
-## Test
+2. Instala las dependencias:
 
 ```bash
-# unit tests
-$ npm run test
-
-# e2e tests
-$ npm run test:e2e
-
-# test coverage
-$ npm run test:cov
+npm install
 ```
 
-## Support
+3. Configura MongoDB en `.env` (si es necesario).
 
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
+4. Ejecuta el proyecto:
 
-## Stay in touch
+```bash
+npm run start:dev
+```
 
-- Author - [Kamil Myśliwiec](https://kamilmysliwiec.com)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
+---
 
-## License
+## 🧪 Próximos pasos
 
-Nest is [MIT licensed](LICENSE).
+- Agregar tests unitarios (cada capa por separado).
+- Implementar más entidades o casos de uso (ej. usuarios, etiquetas).
+- Validación más robusta en DTOs.
+- Usar casos de uso como objetos (Command Pattern).
+
+---
+
+## 🧠 Conclusión
+
+Este proyecto es una buena base para comprender cómo aplicar arquitectura hexagonal en NestJS, usando inyección por token y separando completamente el dominio del resto del sistema. Si bien es un ejemplo sencillo, la estructura está preparada para escalar de forma limpia y mantenible.
+
